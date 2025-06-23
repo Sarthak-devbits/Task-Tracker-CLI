@@ -1,4 +1,11 @@
-export type commandType = 'list' | 'add' | 'update' | 'delete';
+export type commandType =
+  | 'list'
+  | 'add'
+  | 'update'
+  | 'delete'
+  | 'mark-in-progress'
+  | 'mark-as-done'
+  | 'mark-todo';
 export type TaskStatus = 'todo' | 'in-progress' | 'done';
 
 export interface Task {

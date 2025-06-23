@@ -1,33 +1,27 @@
-// # Adding a new task
-// task-cli add "Buy groceries"
-// # Output: Task added successfully (ID: 1)
-
-// # Updating and deleting tasks
-// task-cli update 1 "Buy groceries and cook dinner"
-// task-cli delete 1
-
-// # Marking a task as in progress or done
-// task-cli mark-in-progress 1
-// task-cli mark-done 1
-
-// # Listing all tasks
-// task-cli list
-
-// # Listing tasks by status
-// task-cli list done
-// task-cli list todo
-// task-cli list in-progress
-
 import {
   handleAddCommand,
   handleDeleteCommand,
   handleGetCommand,
+  handleMarkAsDone,
+  handleMarkAsTodo,
+  handleMarkInProgress,
   handleUpdateCommand,
 } from './taskManager';
-import { commandType } from './types';
+import { commandType, TaskStatus } from './types';
 import { addCommandSchema, updateCommandSchema } from './validation/validate';
 
-const validCommand = ['list', 'add', 'update', 'delete'] as commandType[];
+const validCommand = [
+  'list',
+  'add',
+  'update',
+  'delete',
+  'mark-in-progress',
+  'mark-as-done',
+  'mark-todo',
+] as commandType[];
+
+const taskStatus = ['todo', 'in-progress', 'done'] as TaskStatus[];
+
 const args = process.argv;
 const command: commandType = args[2] as commandType;
 
@@ -62,7 +56,7 @@ switch (command) {
     handleUpdateCommand(taskId, taskDescription);
     break;
   }
-  case 'delete':
+  case 'delete': {
     const taskId = args[3] ? parseInt(args[3]) : -1;
     if (taskId == -1) {
       console.log('Please provide TaskId');
@@ -70,9 +64,30 @@ switch (command) {
     }
     handleDeleteCommand(taskId);
     break;
-  case 'list':
-    handleGetCommand();
+  }
+  case 'list': {
+    const status = args[3] as TaskStatus;
+    if (!taskStatus.includes(status)) {
+      console.log('Please eneter valid CLI expression');
+    }
+    handleGetCommand(status);
     break;
+  }
+  case 'mark-in-progress': {
+    const taskId = args[3] ? parseInt(args[3]) : -1;
+    handleMarkInProgress(taskId);
+    break;
+  }
+  case 'mark-as-done': {
+    const taskId = args[3] ? parseInt(args[3]) : -1;
+    handleMarkAsDone(taskId);
+    break;
+  }
+  case 'mark-todo': {
+    const taskId = args[3] ? parseInt(args[3]) : -1;
+    handleMarkAsTodo(taskId);
+    break;
+  }
   default:
     break;
 }
