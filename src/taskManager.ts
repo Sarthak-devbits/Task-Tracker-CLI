@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { Task } from './types';
+import { Task, TaskStatus } from './types';
 
 const filePath = path.join(__dirname, '/tasks.json');
-const loadFile = () => {
+
+const loadFile = (): Task[] => {
   if (!fs.existsSync(filePath)) {
     fs.writeFileSync(filePath, '[]');
   }
@@ -11,16 +12,17 @@ const loadFile = () => {
   return JSON.parse(data);
 };
 
-const saveTask = (task: Task[]) => {
-  fs.writeFileSync(filePath, JSON.stringify(task, null, 2));
+const saveTask = (tasks: Task[]) => {
+  fs.writeFileSync(filePath, JSON.stringify(tasks, null, 2));
 };
 
 export const handleAddCommand = (taskDescription: string) => {
-  const existingData: Task[] = loadFile();
+  const existingData = loadFile();
   const id =
     existingData.length === 0
       ? 1
       : existingData[existingData.length - 1].id + 1;
+
   const newTask: Task = {
     id,
     description: taskDescription,
@@ -28,99 +30,84 @@ export const handleAddCommand = (taskDescription: string) => {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
-  const updatedTask: Task[] = [...existingData, newTask];
-  saveTask(updatedTask);
+
+  saveTask([...existingData, newTask]);
+  console.log(`✅ Task added with ID ${id}`);
 };
 
 export const handleUpdateCommand = (
   taskId: number,
   taskDescription: string
 ) => {
-  const existingData: Task[] = loadFile();
-  const existingTaskById = existingData.find((item) => item.id == taskId);
-  if (!existingTaskById) {
-    console.log(`Task with ID ${taskId} is not present or invalid`);
+  const existingData = loadFile();
+  const task = existingData.find((item) => item.id === taskId);
+
+  if (!task) {
+    console.log(`❌ Task with ID ${taskId} not found.`);
     process.exit(1);
-  } else {
-    const updatedData = existingData.map((item) => {
-      return item.id == taskId
-        ? { ...item, description: taskDescription }
-        : item;
-    });
-    saveTask(updatedData);
   }
+
+  const updatedData = existingData.map((item) =>
+    item.id === taskId
+      ? {
+          ...item,
+          description: taskDescription,
+          updatedAt: new Date().toISOString(),
+        }
+      : item
+  );
+
+  saveTask(updatedData);
+  console.log(`✅ Task ID ${taskId} updated.`);
 };
 
 export const handleDeleteCommand = (taskId: number) => {
-  let existingData: Task[] = loadFile();
-  const index = existingData.findIndex((item, key) => item.id == taskId);
-  if (index == -1) {
-    console.log('Invalid Task Id');
+  const existingData = loadFile();
+  const index = existingData.findIndex((item) => item.id === taskId);
+
+  if (index === -1) {
+    console.log(`❌ Task with ID ${taskId} not found.`);
     process.exit(1);
   }
+
   existingData.splice(index, 1);
   saveTask(existingData);
+  console.log(`🗑️ Task ID ${taskId} deleted.`);
 };
 
-export const handleGetCommand = (status: string) => {
-  const existingData: Task[] = loadFile();
-  console.log(
-    status
-      ? existingData.find((item) => item.status == status) ?? []
-      : existingData
+export const handleGetCommand = (status?: TaskStatus) => {
+  const existingData = loadFile();
+
+  if (status) {
+    const filtered = existingData.filter((item) => item.status === status);
+    console.log(`📋 Tasks with status '${status}':\n`, filtered);
+  } else {
+    console.log(`📋 All Tasks:\n`, existingData);
+  }
+};
+
+const updateStatus = (taskId: number, status: TaskStatus) => {
+  const existingData = loadFile();
+  const task = existingData.find((item) => item.id === taskId);
+
+  if (!task) {
+    console.log(`❌ Task with ID ${taskId} not found.`);
+    process.exit(1);
+  }
+
+  const updatedData = existingData.map((item) =>
+    item.id === taskId
+      ? { ...item, status, updatedAt: new Date().toISOString() }
+      : item
   );
-};
-
-export const handleMarkInProgress = (taskId: number) => {
-  const existingData: Task[] = loadFile();
-  if (taskId == -1) {
-    console.log('Invalid Task Id');
-    process.exit(1);
-  }
-  const existingTask = existingData.find((item) => item.id == taskId);
-  if (!existingTask) {
-    console.log('No Task Exist');
-    process.exit(1);
-  }
-  const updatedData: Task[] = existingData.map((item) => {
-    return item.id == taskId ? { ...item, status: 'in-progress' } : item;
-  });
 
   saveTask(updatedData);
+  console.log(`✅ Task ID ${taskId} marked as '${status}'.`);
 };
 
-export const handleMarkAsTodo = (taskId: number) => {
-  const existingData: Task[] = loadFile();
-  if (taskId == -1) {
-    console.log('Invalid Task Id');
-    process.exit(1);
-  }
-  const existingTask = existingData.find((item) => item.id == taskId);
-  if (!existingTask) {
-    console.log('No Task Exist');
-    process.exit(1);
-  }
-  const updatedData: Task[] = existingData.map((item) => {
-    return item.id == taskId ? { ...item, status: 'todo' } : item;
-  });
-
-  saveTask(updatedData);
-};
-
-export const handleMarkAsDone = (taskId: number) => {
-  const existingData: Task[] = loadFile();
-  if (taskId == -1) {
-    console.log('Invalid Task Id');
-    process.exit(1);
-  }
-  const existingTask = existingData.find((item) => item.id == taskId);
-  if (!existingTask) {
-    console.log('No Task Exist');
-    process.exit(1);
-  }
-  const updatedData: Task[] = existingData.map((item) => {
-    return item.id == taskId ? { ...item, status: 'done' } : item;
-  });
-
-  saveTask(updatedData);
-};
+export const handleMarkInProgress = (taskId: number) =>
+  updateStatus(taskId, 'in-progress');
+export const handleMarkAsTodo = (taskId: number) =>
+  updateStatus(taskId, 'todo');
+export const handleMarkAsDone = (taskId: number) =>
+  updateStatus(taskId, 'done');
